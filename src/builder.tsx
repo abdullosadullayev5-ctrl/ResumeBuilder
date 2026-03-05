@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 import { FirebaseError } from 'firebase/app'
 import {
   GoogleAuthProvider,
@@ -79,6 +81,7 @@ const TEXT: Record<Locale, Record<string, string>> = {
     preview: "Ko'rish",
     back: 'Orqaga',
     downloadPdf: 'PDF yuklab olish',
+    savePdf: 'Saqlash PDF',
     preparing: 'Tayyorlanmoqda...',
     personal: 'Shaxsiy',
     experiences: 'Tajriba',
@@ -104,6 +107,7 @@ const TEXT: Record<Locale, Record<string, string>> = {
     preview: 'Preview',
     back: 'Back',
     downloadPdf: 'Download PDF',
+    savePdf: 'Save PDF',
     preparing: 'Preparing...',
     personal: 'Personal',
     experiences: 'Experiences',
@@ -129,6 +133,7 @@ const TEXT: Record<Locale, Record<string, string>> = {
     preview: 'Предпросмотр',
     back: 'Назад',
     downloadPdf: 'Скачать PDF',
+    savePdf: 'Сохранить PDF',
     preparing: 'Подготовка...',
     personal: 'Личное',
     experiences: 'Опыт',
@@ -160,6 +165,7 @@ const emptyResume: ResumeData = {
 }
 
 const googleProvider = new GoogleAuthProvider()
+const hasText = (value: string) => value.trim().length > 0
 
 export default function ResumeBuilder() {
   const [user, setUser] = useState<User | null>(null)
@@ -174,9 +180,19 @@ export default function ResumeBuilder() {
   const [showPreview, setShowPreview] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const previewRef = useRef<HTMLDivElement>(null)
+  const exportRef = useRef<HTMLDivElement>(null)
 
   const t = (key: string) => TEXT[locale][key] || key
   const tabs: Tab[] = ['personal', 'experiences', 'projects', 'education', 'skills', 'languages']
+  const resumeHasContent =
+    hasText(resumeData.personal.fullName) ||
+    hasText(resumeData.personal.title) ||
+    hasText(resumeData.personal.summary) ||
+    resumeData.experiences.some((item) => hasText(item.company) || hasText(item.role) || hasText(item.description)) ||
+    resumeData.projects.some((item) => hasText(item.name) || hasText(item.description)) ||
+    resumeData.education.some((item) => hasText(item.institution) || hasText(item.degree) || hasText(item.field)) ||
+    resumeData.skills.some((item) => hasText(item.category) || item.items.length > 0) ||
+    resumeData.languages.some((item) => hasText(item.language) || hasText(item.level))
 
   useEffect(() => {
     if (!auth) return
@@ -358,30 +374,192 @@ export default function ResumeBuilder() {
     setResumeData((prev) => ({ ...prev, languages: prev.languages.filter((lang) => lang.id !== id) }))
   }
 
+  const addPersonalLink = () => {
+    setResumeData((prev) => ({
+      ...prev,
+      personal: { ...prev.personal, links: [...prev.personal.links, { label: '', url: '' }] },
+    }))
+  }
+
+  const updatePersonalLink = (index: number, field: 'label' | 'url', value: string) => {
+    setResumeData((prev) => {
+      const links = [...prev.personal.links]
+      links[index] = { ...links[index], [field]: value }
+      return { ...prev, personal: { ...prev.personal, links } }
+    })
+  }
+
+  const removePersonalLink = (index: number) => {
+    setResumeData((prev) => ({
+      ...prev,
+      personal: { ...prev.personal, links: prev.personal.links.filter((_, idx) => idx !== index) },
+    }))
+  }
+
   const exportToPDF = async () => {
-    if (!previewRef.current) return
+    const target = previewRef.current || exportRef.current
+    if (!target) return
     setIsExporting(true)
     try {
-      window.print()
+      const canvas = await html2canvas(target, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const imgWidth = 210
+      const pageHeight = 297
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      let heightLeft = imgHeight
+      let position = 0
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+      }
+
+      pdf.save(`${resumeData.personal.fullName.trim() || 'resume'}.pdf`)
     } finally {
       setIsExporting(false)
     }
   }
 
+  const renderResumeDocument = (ref?: { current: HTMLDivElement | null }) => (
+    <div ref={ref} className="resume-sheet">
+      <div className="resume-header">
+        <h1>{resumeData.personal.fullName || 'Your Name'}</h1>
+        <h2>{resumeData.personal.title || 'Professional Title'}</h2>
+        <div className="resume-contact">
+          {resumeData.personal.location && <span>{resumeData.personal.location}</span>}
+          {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
+          {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
+        </div>
+        {resumeData.personal.links.some((link) => hasText(link.url)) && (
+          <div className="resume-links">
+            {resumeData.personal.links
+              .filter((link) => hasText(link.url))
+              .map((link, idx) => (
+                <a key={`${link.url}-${idx}`} href={link.url} target="_blank" rel="noreferrer">
+                  {link.label || link.url}
+                </a>
+              ))}
+          </div>
+        )}
+        {resumeData.personal.summary && <p className="resume-summary">{resumeData.personal.summary}</p>}
+      </div>
+
+      {resumeData.experiences.length > 0 && (
+        <section className="resume-section">
+          <h3>EXPERIENCE</h3>
+          {resumeData.experiences.map((exp) => (
+            <article key={exp.id} className="resume-item">
+              <div className="resume-item-header">
+                <div>
+                  <h4>{exp.company || 'Company'}</h4>
+                  <p>{exp.role || 'Role'}</p>
+                </div>
+                <span>
+                  {exp.startDate || 'Start'} - {exp.endDate || 'Present'}
+                </span>
+              </div>
+              {exp.description && <p className="resume-item-description">{exp.description}</p>}
+            </article>
+          ))}
+        </section>
+      )}
+
+      {resumeData.projects.length > 0 && (
+        <section className="resume-section">
+          <h3>PROJECTS</h3>
+          {resumeData.projects.map((proj) => (
+            <article key={proj.id} className="resume-item">
+              <h4>{proj.name || 'Project'}</h4>
+              {proj.description && <p className="resume-item-description">{proj.description}</p>}
+              <div className="resume-links">
+                {proj.liveLink && (
+                  <a href={proj.liveLink} target="_blank" rel="noreferrer">
+                    Live Link
+                  </a>
+                )}
+                {proj.githubLink && (
+                  <a href={proj.githubLink} target="_blank" rel="noreferrer">
+                    Github Link
+                  </a>
+                )}
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {resumeData.education.length > 0 && (
+        <section className="resume-section">
+          <h3>EDUCATION</h3>
+          {resumeData.education.map((edu) => (
+            <article key={edu.id} className="resume-item">
+              <div className="resume-item-header">
+                <div>
+                  <h4>{edu.institution || 'Institution'}</h4>
+                  <p>{[edu.degree, edu.field].filter(Boolean).join(' - ') || 'Degree / Field'}</p>
+                </div>
+                <span>
+                  {edu.startDate || 'Start'} - {edu.endDate || 'Present'}
+                </span>
+              </div>
+              {edu.description && <p className="resume-item-description">{edu.description}</p>}
+            </article>
+          ))}
+        </section>
+      )}
+
+      {resumeData.skills.length > 0 && (
+        <section className="resume-section">
+          <h3>SKILLS</h3>
+          {resumeData.skills.map((skill) => (
+            <p key={skill.id} className="resume-skill-line">
+              <strong>{skill.category || 'Category'}: </strong>
+              {skill.items.join(', ')}
+            </p>
+          ))}
+        </section>
+      )}
+
+      {resumeData.languages.length > 0 && (
+        <section className="resume-section">
+          <h3>LANGUAGES</h3>
+          <ul className="resume-lang-list">
+            {resumeData.languages.map((lang) => (
+              <li key={lang.id}>
+                {lang.language || 'Language'} - {lang.level || 'Level'}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  )
+
   const controls = (
     <div className="d-flex align-items-center gap-2 ms-2">
       <div className="lang-switch">
-        <button className={`lang-btn ${locale === 'uz' ? 'active' : ''}`} onClick={() => setLocale('uz')}>
+        <button type="button" className={`lang-btn ${locale === 'uz' ? 'active' : ''}`} onClick={() => setLocale('uz')}>
           UZ
         </button>
-        <button className={`lang-btn ${locale === 'ru' ? 'active' : ''}`} onClick={() => setLocale('ru')}>
+        <button type="button" className={`lang-btn ${locale === 'ru' ? 'active' : ''}`} onClick={() => setLocale('ru')}>
           RU
         </button>
-        <button className={`lang-btn ${locale === 'en' ? 'active' : ''}`} onClick={() => setLocale('en')}>
+        <button type="button" className={`lang-btn ${locale === 'en' ? 'active' : ''}`} onClick={() => setLocale('en')}>
           EN
         </button>
       </div>
-      <button className="btn btn-sm btn-outline-light theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+      <button type="button" className="btn btn-sm btn-outline-light theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
         {theme === 'light' ? t('dark') : t('light')}
       </button>
     </div>
@@ -445,36 +623,15 @@ export default function ResumeBuilder() {
               <button className="btn btn-outline-light btn-sm me-2" onClick={() => setShowPreview(false)}>
                 {t('back')}
               </button>
-              <button className="btn btn-light btn-sm" onClick={exportToPDF} disabled={isExporting}>
-                {isExporting ? t('preparing') : t('downloadPdf')}
+              <button className="btn btn-light btn-sm" onClick={exportToPDF} disabled={isExporting || !resumeHasContent}>
+                {isExporting ? t('preparing') : t('savePdf')}
               </button>
               {controls}
             </div>
           </div>
         </nav>
 
-        <div className="container-lg py-5">
-          <div ref={previewRef} className="bg-white p-5 rounded-3 shadow-lg">
-            <div className="row align-items-center mb-4 pb-4 border-bottom">
-              {resumeData.personal.profileImage && (
-                <div className="col-md-2 text-center">
-                  <img src={resumeData.personal.profileImage} alt="Profile" className="img-fluid rounded-circle shadow" style={{ maxWidth: '120px', border: '4px solid #0d6efd' }} />
-                </div>
-              )}
-              <div className={resumeData.personal.profileImage ? 'col-md-10' : 'col-12'}>
-                <h1 className="mb-0 text-primary fw-bold">{resumeData.personal.fullName}</h1>
-                <h4 className="text-secondary mb-3">{resumeData.personal.title}</h4>
-                <div className="small text-muted mb-2">
-                  {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
-                  {resumeData.personal.phone && <span className="ms-3">{resumeData.personal.phone}</span>}
-                  {resumeData.personal.location && <span className="ms-3">{resumeData.personal.location}</span>}
-                </div>
-              </div>
-            </div>
-
-            {resumeData.personal.summary && <p className="text-dark mb-4">{resumeData.personal.summary}</p>}
-          </div>
-        </div>
+        <div className="container-lg py-5">{renderResumeDocument(previewRef)}</div>
       </div>
     )
   }
@@ -489,6 +646,11 @@ export default function ResumeBuilder() {
             <button className="btn btn-light btn-sm me-2" onClick={() => setShowPreview(true)}>
               {t('preview')}
             </button>
+            {resumeHasContent && (
+              <button className="btn btn-warning btn-sm me-2" onClick={exportToPDF} disabled={isExporting}>
+                {isExporting ? t('preparing') : t('savePdf')}
+              </button>
+            )}
             <button className="btn btn-outline-light btn-sm" onClick={handleLogout}>
               {t('logout')}
             </button>
@@ -567,6 +729,30 @@ export default function ResumeBuilder() {
 
             <label className="form-label fw-semibold">Professional Summary</label>
             <textarea className="form-control mb-3" rows={4} value={resumeData.personal.summary} onChange={(e) => updatePersonal('summary', e.target.value)} />
+
+            <div>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <label className="form-label fw-semibold mb-0">Social Links</label>
+                <button type="button" className="btn btn-sm btn-outline-primary" onClick={addPersonalLink}>
+                  + Add Link
+                </button>
+              </div>
+              {resumeData.personal.links.map((link, idx) => (
+                <div key={`${idx}-${link.label}`} className="row g-2 mb-2">
+                  <div className="col-md-4">
+                    <input className="form-control" placeholder="LinkedIn" value={link.label} onChange={(e) => updatePersonalLink(idx, 'label', e.target.value)} />
+                  </div>
+                  <div className="col-md-6">
+                    <input className="form-control" placeholder="https://..." value={link.url} onChange={(e) => updatePersonalLink(idx, 'url', e.target.value)} />
+                  </div>
+                  <div className="col-md-2 d-grid">
+                    <button type="button" className="btn btn-outline-danger" onClick={() => removePersonalLink(idx)}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -586,6 +772,14 @@ export default function ResumeBuilder() {
                   </div>
                   <div className="col-md-6">
                     <input className="form-control" placeholder="Role" value={exp.role} onChange={(e) => updateExperience(exp.id, 'role', e.target.value)} />
+                  </div>
+                </div>
+                <div className="row mb-3">
+                  <div className="col-md-6">
+                    <input className="form-control" placeholder="Start date (YYYY-MM-DD)" value={exp.startDate} onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)} />
+                  </div>
+                  <div className="col-md-6">
+                    <input className="form-control" placeholder="End date or Present" value={exp.endDate} onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)} />
                   </div>
                 </div>
                 <textarea className="form-control" rows={3} placeholder="Description" value={exp.description} onChange={(e) => updateExperience(exp.id, 'description', e.target.value)} />
@@ -636,6 +830,22 @@ export default function ResumeBuilder() {
                   </button>
                 </div>
                 <input className="form-control mb-3" placeholder="Institution" value={edu.institution} onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)} />
+                <div className="row mb-3">
+                  <div className="col-md-6">
+                    <input className="form-control" placeholder="Degree" value={edu.degree} onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)} />
+                  </div>
+                  <div className="col-md-6">
+                    <input className="form-control" placeholder="Field" value={edu.field} onChange={(e) => updateEducation(edu.id, 'field', e.target.value)} />
+                  </div>
+                </div>
+                <div className="row mb-3">
+                  <div className="col-md-6">
+                    <input className="form-control" placeholder="Start date (YYYY-MM-DD)" value={edu.startDate} onChange={(e) => updateEducation(edu.id, 'startDate', e.target.value)} />
+                  </div>
+                  <div className="col-md-6">
+                    <input className="form-control" placeholder="End date or Present" value={edu.endDate} onChange={(e) => updateEducation(edu.id, 'endDate', e.target.value)} />
+                  </div>
+                </div>
                 <textarea className="form-control" rows={3} placeholder="Description" value={edu.description} onChange={(e) => updateEducation(edu.id, 'description', e.target.value)} />
               </div>
             ))}
@@ -697,6 +907,12 @@ export default function ResumeBuilder() {
           </div>
         )}
       </div>
+
+      <div className="pdf-export-shell" aria-hidden>
+        {renderResumeDocument(exportRef)}
+      </div>
     </div>
   )
 }
+
+
