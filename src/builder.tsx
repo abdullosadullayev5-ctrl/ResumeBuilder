@@ -10,7 +10,7 @@ import {
   signOut,
   type User,
 } from 'firebase/auth'
-import { auth } from './firebase'
+import { auth, missingFirebaseEnv } from './firebase'
 
 type Locale = 'uz' | 'en' | 'ru'
 type Theme = 'light' | 'dark'
@@ -180,6 +180,7 @@ export default function ResumeBuilder() {
   const tabs: Tab[] = ['personal', 'experiences', 'projects', 'education', 'skills', 'languages']
 
   useEffect(() => {
+    if (!auth) return
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser)
       setAuthError('')
@@ -218,6 +219,10 @@ export default function ResumeBuilder() {
   const handleAuth = async (e: FormEvent) => {
     e.preventDefault()
     setAuthError('')
+    if (!auth) {
+      setAuthError(`Firebase config missing: ${missingFirebaseEnv.join(', ')}`)
+      return
+    }
     try {
       if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email, password)
@@ -233,6 +238,10 @@ export default function ResumeBuilder() {
 
   const handleGoogleAuth = async () => {
     setAuthError('')
+    if (!auth) {
+      setAuthError(`Firebase config missing: ${missingFirebaseEnv.join(', ')}`)
+      return
+    }
     try {
       await signInWithPopup(auth, googleProvider)
     } catch (error) {
@@ -241,6 +250,7 @@ export default function ResumeBuilder() {
   }
 
   const handleLogout = async () => {
+    if (!auth) return
     await signOut(auth)
     setShowPreview(false)
   }
@@ -393,6 +403,11 @@ export default function ResumeBuilder() {
             </div>
 
             <form onSubmit={handleAuth}>
+              {missingFirebaseEnv.length > 0 && (
+                <div className="alert alert-warning">
+                  Firebase env not set: {missingFirebaseEnv.join(', ')}. Set them in Vercel Project Settings.
+                </div>
+              )}
               <div className="mb-3">
                 <label className="form-label fw-semibold">{t('email')}</label>
                 <input type="email" className="form-control form-control-lg" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -402,10 +417,10 @@ export default function ResumeBuilder() {
                 <input type="password" className="form-control form-control-lg" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
               {authError && <div className="alert alert-danger">{authError}</div>}
-              <button type="submit" className="btn btn-custom w-100 btn-lg mb-2">
+              <button type="submit" className="btn btn-custom w-100 btn-lg mb-2" disabled={!auth}>
                 {isSignUp ? t('createAccount') : t('signIn')}
               </button>
-              <button type="button" className="btn btn-outline-primary w-100 mb-3" onClick={handleGoogleAuth}>
+              <button type="button" className="btn btn-outline-primary w-100 mb-3" onClick={handleGoogleAuth} disabled={!auth}>
                 {t('google')}
               </button>
             </form>
