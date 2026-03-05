@@ -1,0 +1,187 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+:root {
+  --bg-soft: #f3f6fb;
+  --auth-bg: linear-gradient(135deg, #0d6efd 0%, #0a3d7a 100%);
+  --surface: #ffffff;
+  --text-main: #1f2a44;
+  --text-muted: #6a748b;
+  --brand: #1967d2;
+  --brand-strong: #0d47a1;
+  --stroke: #d9e1ef;
+  --shadow: 0 20px 50px rgba(31, 42, 68, 0.12);
+  --radius-lg: 18px;
+  --radius-md: 12px;
+}
+
+[data-theme='dark'] {
+  --bg-soft: #101624;
+  --auth-bg: linear-gradient(135deg, #0e1b33 0%, #1a2f4f 100%);
+  --surface: #171f31;
+  --text-main: #ebf1ff;
+  --text-muted: #aeb8cc;
+  --brand: #5fa2ff;
+  --brand-strong: #3379dd;
+  --stroke: #2a3550;
+  --shadow: 0 24px 40px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
+  color: var(--text-main);
+  background:
+    radial-gradient(circle at 10% -10%, rgba(25, 103, 210, 0.12), transparent 30%),
+    radial-gradient(circle at 90% 0%, rgba(13, 71, 161, 0.1), transparent 28%),
+    var(--bg-soft);
+}
+
+[data-theme='dark'] body {
+  background:
+    radial-gradient(circle at 10% -10%, rgba(95, 162, 255, 0.15), transparent 30%),
+    radial-gradient(circle at 90% 0%, rgba(51, 121, 221, 0.15), transparent 28%),
+    var(--bg-soft);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.navbar-brand {
+  font-family: 'Space Grotesk', 'Manrope', sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.navbar {
+  background: linear-gradient(120deg, var(--brand) 0%, var(--brand-strong) 100%) !important;
+  box-shadow: 0 8px 24px rgba(13, 71, 161, 0.3);
+}
+
+.card,
+.auth-card,
+.bg-white.p-5.rounded-3.shadow-lg {
+  background: var(--surface) !important;
+  border: 1px solid rgba(217, 225, 239, 0.8);
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow) !important;
+  color: var(--text-main);
+}
+
+.form-control,
+.form-select,
+.btn {
+  border-radius: var(--radius-md);
+}
+
+.form-control {
+  background: var(--surface);
+  color: var(--text-main);
+  border-color: var(--stroke);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
+}
+
+.form-select {
+  background-color: var(--surface);
+  color: var(--text-main);
+  border-color: var(--stroke);
+}
+
+.form-control:focus {
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 0.2rem rgba(25, 103, 210, 0.16) !important;
+  transform: translateY(-1px);
+}
+
+.btn-primary,
+.btn-custom {
+  background: linear-gradient(120deg, var(--brand) 0%, #2b7ef5 100%) !important;
+  border: none !important;
+}
+
+.btn-outline-primary {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.btn-outline-primary:hover {
+  background: var(--brand);
+  color: #fff;
+}
+
+.nav-tabs {
+  border-bottom: 0;
+  gap: 0.5rem;
+}
+
+.nav-tabs .nav-link {
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-weight: 700;
+  background: var(--surface);
+}
+
+.nav-tabs .nav-link.active {
+  color: #fff !important;
+  border-color: transparent !important;
+  background: linear-gradient(120deg, var(--brand) 0%, var(--brand-strong) 100%) !important;
+}
+
+.upload-icon {
+  width: 56px;
+  height: 56px;
+  margin-inline: auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: linear-gradient(120deg, var(--brand) 0%, var(--brand-strong) 100%);
+  box-shadow: 0 8px 20px rgba(25, 103, 210, 0.34);
+}
+
+.theme-toggle {
+  min-width: 78px;
+}
+
+.locale-select {
+  min-width: 84px;
+}
+
+.auth-panel .text-muted,
+[data-theme='dark'] .text-muted {
+  color: var(--text-muted) !important;
+}
+
+[data-theme='dark'] .btn-outline-light {
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #fff;
+}
+
+[data-theme='dark'] .btn-light {
+  background: #f8fbff;
+}
+
+@media (max-width: 768px) {
+  .container-lg {
+    padding-inline: 0.9rem;
+  }
+
+  .card,
+  .auth-card,
+  .bg-white.p-5.rounded-3.shadow-lg {
+    border-radius: 14px !important;
+  }
+}
