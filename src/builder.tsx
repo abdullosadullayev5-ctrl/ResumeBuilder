@@ -10,7 +10,7 @@ import {
   signOut,
   type User,
 } from 'firebase/auth'
-import { auth, firebaseInitError, missingFirebaseEnv } from './firebase'
+import { auth, firebaseInitError } from './firebase'
 
 type Locale = 'uz' | 'en' | 'ru'
 type Theme = 'light' | 'dark'
@@ -160,7 +160,6 @@ const emptyResume: ResumeData = {
 }
 
 const googleProvider = new GoogleAuthProvider()
-const HERO_IMAGE_URL = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQJRzQPmMs9y7dgFuE4HK_g0EDzlJ4SOgLlKA&s'
 
 export default function ResumeBuilder() {
   const [user, setUser] = useState<User | null>(null)
@@ -220,8 +219,7 @@ export default function ResumeBuilder() {
     e.preventDefault()
     setAuthError('')
     if (!auth) {
-      const reason = missingFirebaseEnv.length > 0 ? `Missing env: ${missingFirebaseEnv.join(', ')}` : firebaseInitError
-      setAuthError(`Firebase config error. ${reason}`)
+      setAuthError(`Firebase config error. ${firebaseInitError || 'Initialization failed'}`)
       return
     }
     try {
@@ -240,8 +238,7 @@ export default function ResumeBuilder() {
   const handleGoogleAuth = async () => {
     setAuthError('')
     if (!auth) {
-      const reason = missingFirebaseEnv.length > 0 ? `Missing env: ${missingFirebaseEnv.join(', ')}` : firebaseInitError
-      setAuthError(`Firebase config error. ${reason}`)
+      setAuthError(`Firebase config error. ${firebaseInitError || 'Initialization failed'}`)
       return
     }
     try {
@@ -373,11 +370,17 @@ export default function ResumeBuilder() {
 
   const controls = (
     <div className="d-flex align-items-center gap-2 ms-2">
-      <select className="form-select form-select-sm locale-select" value={locale} onChange={(e) => setLocale(e.target.value as Locale)}>
-        <option value="uz">UZ</option>
-        <option value="en">EN</option>
-        <option value="ru">RU</option>
-      </select>
+      <div className="lang-switch">
+        <button className={`lang-btn ${locale === 'uz' ? 'active' : ''}`} onClick={() => setLocale('uz')}>
+          UZ
+        </button>
+        <button className={`lang-btn ${locale === 'ru' ? 'active' : ''}`} onClick={() => setLocale('ru')}>
+          RU
+        </button>
+        <button className={`lang-btn ${locale === 'en' ? 'active' : ''}`} onClick={() => setLocale('en')}>
+          EN
+        </button>
+      </div>
       <button className="btn btn-sm btn-outline-light theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
         {theme === 'light' ? t('dark') : t('light')}
       </button>
@@ -398,21 +401,7 @@ export default function ResumeBuilder() {
               {controls}
             </div>
 
-            <div className="auth-hero mb-4">
-              <img src={HERO_IMAGE_URL} alt="Resume style preview" className="auth-hero-image" />
-              <div className="auth-hero-overlay" />
-              <div className="auth-hero-text">Modern CV Design</div>
-            </div>
-
             <form onSubmit={handleAuth}>
-              {missingFirebaseEnv.length > 0 && (
-                <div className="alert alert-warning">
-                  Firebase env not set: {missingFirebaseEnv.join(', ')}. Set them in Vercel Project Settings.
-                </div>
-              )}
-              {missingFirebaseEnv.length === 0 && firebaseInitError && (
-                <div className="alert alert-warning">Firebase init failed: {firebaseInitError}</div>
-              )}
               <div className="mb-3">
                 <label className="form-label fw-semibold">{t('email')}</label>
                 <input type="email" className="form-control form-control-lg" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />

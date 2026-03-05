@@ -1,38 +1,27 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, type Auth } from 'firebase/auth'
 
-const requiredEnv = [
-  'VITE_FIREBASE_API_KEY',
-  'VITE_FIREBASE_AUTH_DOMAIN',
-  'VITE_FIREBASE_PROJECT_ID',
-  'VITE_FIREBASE_STORAGE_BUCKET',
-  'VITE_FIREBASE_MESSAGING_SENDER_ID',
-  'VITE_FIREBASE_APP_ID',
-]
-
-export const missingFirebaseEnv = requiredEnv.filter((key) => !import.meta.env[key])
 export let firebaseInitError = ''
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: 'AIzaSyCoTvYoc-9rJingUTFxDomXgaAQ0bvnKv0',
+  authDomain: 'sayt-9e245.firebaseapp.com',
+  projectId: 'sayt-9e245',
+  storageBucket: 'sayt-9e245.firebasestorage.app',
+  messagingSenderId: '57903143719',
+  appId: '1:57903143719:web:e4ffd3911174d4e49de702',
+  measurementId: 'G-GHRT1FMTZL',
 }
 
 let auth: Auth | null = null
 
-if (missingFirebaseEnv.length === 0) {
-  try {
-    const app = initializeApp(firebaseConfig)
-    auth = getAuth(app)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown Firebase initialization error'
-    firebaseInitError = message
-    auth = null
-  }
+try {
+  const app = initializeApp(firebaseConfig)
+  auth = getAuth(app)
+} catch (error) {
+  const message = error instanceof Error ? error.message : 'Unknown Firebase initialization error'
+  firebaseInitError = message
+  auth = null
 }
 
 export { auth }
