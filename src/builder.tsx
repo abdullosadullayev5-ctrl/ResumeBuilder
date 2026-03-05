@@ -6,9 +6,11 @@ import { FirebaseError } from 'firebase/app'
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User,
 } from 'firebase/auth'
@@ -202,6 +204,7 @@ const emptyResume: ResumeData = {
 }
 
 const googleProvider = new GoogleAuthProvider()
+googleProvider.setCustomParameters({ prompt: 'select_account' })
 const hasText = (value: string) => value.trim().length > 0
 const ADMIN_EMAILS = ['admin@rentpro.uz', 'abdullosadullayev5@gmail.com', 'abdullosadullayev5-ctrl@gmail.com']
 const cars: CarModel[] = [
@@ -394,6 +397,10 @@ export default function ResumeBuilder() {
     if (error instanceof FirebaseError) {
       if (error.code.includes('invalid-credential')) return 'Invalid email or password'
       if (error.code.includes('popup-closed-by-user')) return 'Google sign-in popup was closed'
+      if (error.code.includes('popup-blocked')) return 'Popup blocked. Browser redirected sign-in will be used.'
+      if (error.code.includes('unauthorized-domain')) return `Unauthorized domain: ${window.location.hostname}. Add it in Firebase Auth > Settings > Authorized domains.`
+      if (error.code.includes('operation-not-allowed')) return 'Google provider is disabled in Firebase Console. Enable Google in Authentication > Sign-in method.'
+      if (error.code.includes('invalid-api-key')) return 'Invalid Firebase API key. Check firebaseConfig values.'
       if (error.code.includes('email-already-in-use')) return 'Email is already in use'
       if (error.code.includes('weak-password')) return 'Password should be at least 6 characters'
       if (error.code.includes('network-request-failed')) return 'Network error, try again'
@@ -430,9 +437,18 @@ export default function ResumeBuilder() {
     try {
       await signInWithPopup(auth, googleProvider)
     } catch (error) {
+      if (error instanceof FirebaseError && error.code.includes('popup-blocked')) {
+        await signInWithRedirect(auth, googleProvider)
+        return
+      }
       setAuthError(getAuthMessage(error))
     }
   }
+
+  useEffect(() => {
+    if (!auth) return
+    getRedirectResult(auth).catch((error: unknown) => setAuthError(getAuthMessage(error)))
+  }, [])
 
   const handleLogout = async () => {
     if (!auth) return
