@@ -11,6 +11,7 @@ const requiredEnv = [
 ]
 
 export const missingFirebaseEnv = requiredEnv.filter((key) => !import.meta.env[key])
+export let firebaseInitError = ''
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -24,8 +25,14 @@ const firebaseConfig = {
 let auth: Auth | null = null
 
 if (missingFirebaseEnv.length === 0) {
-  const app = initializeApp(firebaseConfig)
-  auth = getAuth(app)
+  try {
+    const app = initializeApp(firebaseConfig)
+    auth = getAuth(app)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown Firebase initialization error'
+    firebaseInitError = message
+    auth = null
+  }
 }
 
 export { auth }

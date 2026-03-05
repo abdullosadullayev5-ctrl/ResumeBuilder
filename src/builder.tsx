@@ -10,7 +10,7 @@ import {
   signOut,
   type User,
 } from 'firebase/auth'
-import { auth, missingFirebaseEnv } from './firebase'
+import { auth, firebaseInitError, missingFirebaseEnv } from './firebase'
 
 type Locale = 'uz' | 'en' | 'ru'
 type Theme = 'light' | 'dark'
@@ -220,7 +220,8 @@ export default function ResumeBuilder() {
     e.preventDefault()
     setAuthError('')
     if (!auth) {
-      setAuthError(`Firebase config missing: ${missingFirebaseEnv.join(', ')}`)
+      const reason = missingFirebaseEnv.length > 0 ? `Missing env: ${missingFirebaseEnv.join(', ')}` : firebaseInitError
+      setAuthError(`Firebase config error. ${reason}`)
       return
     }
     try {
@@ -239,7 +240,8 @@ export default function ResumeBuilder() {
   const handleGoogleAuth = async () => {
     setAuthError('')
     if (!auth) {
-      setAuthError(`Firebase config missing: ${missingFirebaseEnv.join(', ')}`)
+      const reason = missingFirebaseEnv.length > 0 ? `Missing env: ${missingFirebaseEnv.join(', ')}` : firebaseInitError
+      setAuthError(`Firebase config error. ${reason}`)
       return
     }
     try {
@@ -407,6 +409,9 @@ export default function ResumeBuilder() {
                 <div className="alert alert-warning">
                   Firebase env not set: {missingFirebaseEnv.join(', ')}. Set them in Vercel Project Settings.
                 </div>
+              )}
+              {missingFirebaseEnv.length === 0 && firebaseInitError && (
+                <div className="alert alert-warning">Firebase init failed: {firebaseInitError}</div>
               )}
               <div className="mb-3">
                 <label className="form-label fw-semibold">{t('email')}</label>
