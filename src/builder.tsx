@@ -160,6 +160,7 @@ const emptyResume: ResumeData = {
 }
 
 const googleProvider = new GoogleAuthProvider()
+const HERO_IMAGE_URL = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQJRzQPmMs9y7dgFuE4HK_g0EDzlJ4SOgLlKA&s'
 
 export default function ResumeBuilder() {
   const [user, setUser] = useState<User | null>(null)
@@ -383,6 +384,12 @@ export default function ResumeBuilder() {
                 <p className="text-muted mb-0">{t('appSubtitle')}</p>
               </div>
               {controls}
+            </div>
+
+            <div className="auth-hero mb-4">
+              <img src={HERO_IMAGE_URL} alt="Resume style preview" className="auth-hero-image" />
+              <div className="auth-hero-overlay" />
+              <div className="auth-hero-text">Modern CV Design</div>
             </div>
 
             <form onSubmit={handleAuth}>
