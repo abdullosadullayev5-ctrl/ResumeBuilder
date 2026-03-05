@@ -16,7 +16,7 @@ import { auth, firebaseInitError } from './firebase'
 
 type Locale = 'uz' | 'en' | 'ru'
 type Theme = 'light' | 'dark'
-type Tab = 'personal' | 'experiences' | 'projects' | 'education' | 'skills' | 'languages' | 'cars'
+type Tab = 'personal' | 'experiences' | 'projects' | 'education' | 'skills' | 'languages' | 'cars' | 'profile'
 type CarCategory = 'premium' | 'sport' | 'suv' | 'oddiy'
 
 interface CarModel {
@@ -117,6 +117,7 @@ const TEXT: Record<Locale, Record<string, string>> = {
     skills: "Ko'nikmalar",
     languages: 'Tillar',
     cars: 'Mashinalar',
+    profile: 'Profil',
     light: 'Light',
     dark: 'Dark',
   },
@@ -145,6 +146,7 @@ const TEXT: Record<Locale, Record<string, string>> = {
     skills: 'Skills',
     languages: 'Languages',
     cars: 'Cars',
+    profile: 'Profile',
     light: 'Light',
     dark: 'Dark',
   },
@@ -173,6 +175,7 @@ const TEXT: Record<Locale, Record<string, string>> = {
     skills: 'Навыки',
     languages: 'Языки',
     cars: 'Машины',
+    profile: 'Профиль',
     light: 'Светлая',
     dark: 'Темная',
   },
@@ -318,7 +321,7 @@ export default function ResumeBuilder() {
   const exportRef = useRef<HTMLDivElement>(null)
 
   const t = (key: string) => TEXT[locale][key] || key
-  const tabs: Tab[] = ['personal', 'experiences', 'projects', 'education', 'skills', 'languages', 'cars']
+  const tabs: Tab[] = ['personal', 'experiences', 'projects', 'education', 'skills', 'languages', 'cars', 'profile']
   const filteredCars = cars.filter((car) => {
     const byCategory = carCategory === 'all' || car.category === carCategory
     const q = carSearch.trim().toLowerCase()
@@ -592,31 +595,32 @@ export default function ResumeBuilder() {
   }
 
   const exportToPDF = async () => {
-    const target = previewRef.current || exportRef.current
+    const target = exportRef.current || previewRef.current
     if (!target) return
     setIsExporting(true)
     try {
       const canvas = await html2canvas(target, {
-        scale: 2,
+        scale: 2.5,
         useCORS: true,
         backgroundColor: '#ffffff',
       })
 
       const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-      const imgWidth = 210
-      const pageHeight = 297
+      const margin = 8
+      const imgWidth = 210 - margin * 2
+      const pageHeight = 297 - margin * 2
       const imgHeight = (canvas.height * imgWidth) / canvas.width
       let heightLeft = imgHeight
-      let position = 0
+      let position = margin
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight)
       heightLeft -= pageHeight
 
       while (heightLeft > 0) {
-        position = heightLeft - imgHeight
+        position = margin - (imgHeight - heightLeft)
         pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight)
         heightLeft -= pageHeight
       }
 
@@ -1253,6 +1257,38 @@ export default function ResumeBuilder() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
+          <div className="card shadow-sm p-4 hover-rise">
+            <h3 className="text-primary mb-3">{t('profile')}</h3>
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Email</label>
+                <input className="form-control" value={user?.email ?? ''} disabled />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">User ID</label>
+                <input className="form-control" value={user?.uid ?? ''} disabled />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Display Name</label>
+                <input
+                  className="form-control"
+                  value={resumeData.personal.fullName}
+                  onChange={(e) => updatePersonal('fullName', e.target.value)}
+                  placeholder="Your full name"
+                />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Role</label>
+                <input className="form-control" value={isAdmin ? 'Admin' : 'User'} disabled />
+              </div>
+            </div>
+            <div className="mt-3 small text-muted">
+              {userActivities.length > 0 && <>Last login: {minutesAgo(userActivities[0].loggedInAt)} min ago</>}
+            </div>
           </div>
         )}
       </div>
