@@ -48,6 +48,7 @@ interface ResumeData {
   personal: {
     fullName: string
     title: string
+    level: string
     email: string
     phone: string
     location: string
@@ -185,6 +186,7 @@ const emptyResume: ResumeData = {
   personal: {
     fullName: '',
     title: '',
+    level: 'Junior',
     email: '',
     phone: '',
     location: '',
@@ -230,6 +232,7 @@ const sampleResume: ResumeData = {
   personal: {
     fullName: 'Ravshan Qahramonov',
     title: 'Software Engineer',
+    level: 'Senior',
     email: 'r17ravshan@gmail.com',
     phone: '+998914017702',
     location: 'B. Naqshband',
@@ -634,7 +637,10 @@ export default function ResumeBuilder() {
     <div ref={ref} className="resume-sheet">
       <div className="resume-header">
         <h1>{resumeData.personal.fullName || 'Your Name'}</h1>
-        <h2>{resumeData.personal.title || 'Professional Title'}</h2>
+        <h2>
+          {resumeData.personal.title || 'Professional Title'}
+          {resumeData.personal.level ? ` (${resumeData.personal.level})` : ''}
+        </h2>
         <div className="resume-contact">
           {resumeData.personal.location && <span>{resumeData.personal.location}</span>}
           {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
@@ -916,6 +922,17 @@ export default function ResumeBuilder() {
                     <label className="form-label fw-semibold">Professional Title</label>
                     <input type="text" className="form-control" value={resumeData.personal.title} onChange={(e) => updatePersonal('title', e.target.value)} />
                   </div>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Level</label>
+                  <select className="form-select" value={resumeData.personal.level} onChange={(e) => updatePersonal('level', e.target.value)}>
+                    <option value="Junior">Junior</option>
+                    <option value="Middle">Middle</option>
+                    <option value="Senior">Senior</option>
+                    <option value="Lead">Lead</option>
+                    <option value="Architect">Architect</option>
+                  </select>
                 </div>
 
                 <div className="row mb-3">
@@ -1284,6 +1301,10 @@ export default function ResumeBuilder() {
               <div className="col-md-6">
                 <label className="form-label fw-semibold">Role</label>
                 <input className="form-control" value={isAdmin ? 'Admin' : 'User'} disabled />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Developer Level</label>
+                <input className="form-control" value={resumeData.personal.level} disabled />
               </div>
             </div>
             <div className="mt-3 small text-muted">
